@@ -92,4 +92,14 @@ public class TridimensionalSnakeView : MonoBehaviour, SnakeView {
         CreateMap();
     }
 
+    public void GameEnds()
+    {
+
+    }
+
+    public void RestartGame()
+    {
+        model.RestartGame();
+    }
+
 }

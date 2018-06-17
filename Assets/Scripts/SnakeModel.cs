@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class SnakeModel : MonoBehaviour {
 
@@ -8,6 +9,7 @@ public class SnakeModel : MonoBehaviour {
     private Vector2Int snakePosition = new Vector2Int(2, 2);
     private int snakePoints = 4;
     private Vector2Int snakeMovementDirection = new Vector2Int(0, 1);
+    private Vector2Int applePosition = new Vector2Int(5, 5);
 
     public enum cellTypes
     {
@@ -16,8 +18,6 @@ public class SnakeModel : MonoBehaviour {
         apple
     }
 
-
-
     Cell[] cells;
 
     private int mapWidth = 10;
@@ -25,7 +25,7 @@ public class SnakeModel : MonoBehaviour {
 
 
     public float timer = 0f;
-    public float timeBetweenSnakeUpdates = 1f;
+    public float timeBetweenSnakeUpdates = 0.25f;
 
     public List<Component> views;
     public Component controller;
@@ -146,13 +146,15 @@ public class SnakeModel : MonoBehaviour {
     void Awake()
     {
         CreateMap();
-        foreach (SnakeView view in views)
+        foreach (Component view in views)
         {
-            view.SetModel(this);
-            view.InitializeView();
+            view.GetComponent<SnakeView>().SetModel(this);
+            view.GetComponent<SnakeView>().InitializeView();
         }
         (this.controller as SnakeController).ChangeModel(this);
+        GenerateNewApple();
         SnakeUpdate();
+        
     }
 
     // Update is called once per frame
@@ -164,6 +166,11 @@ public class SnakeModel : MonoBehaviour {
             timer = 0f;
         }
         else timer += Time.deltaTime;
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(0);
     }
 
     void CreateMap()
@@ -189,7 +196,13 @@ public class SnakeModel : MonoBehaviour {
         if (snakePosition.y > MapHeight - 1) snakePosition.y = 0;
         if (snakePosition.y < 0) snakePosition.y = MapWidth - 1;
 
-        Cells[snakePosition.y * MapHeight + snakePosition.x].CellLife = snakePoints;
+        Cells[snakePosition.y * MapHeight + snakePosition.x].CellLife += snakePoints;
+
+        if (Cells[snakePosition.y * MapHeight + snakePosition.x].CellType == cellTypes.apple)
+        {
+            snakePoints++;
+            GenerateNewApple();
+        }
         Cells[snakePosition.y * MapHeight + snakePosition.x].CellType = cellTypes.snake;
 
         for (int y = 0; y < MapHeight; y++)
@@ -198,6 +211,11 @@ public class SnakeModel : MonoBehaviour {
             {
                 if (Cells[y * MapHeight + x].CellType == cellTypes.snake)
                 {
+                    if (Cells[y * MapHeight + x].CellLife > SnakePoints)
+                    {
+                        EndGame();
+                        break;
+                    }
                     if (Cells[y * MapHeight + x].CellLife > 1) Cells[y * MapHeight + x].CellLife -= 1;
                     else
                     {
@@ -213,9 +231,9 @@ public class SnakeModel : MonoBehaviour {
 
     void UpdateViews()
     {
-        foreach(SnakeView view in views)
+        foreach(Component view in views)
         {
-            view.UpdateView();
+            view.GetComponent<SnakeView>().UpdateView();
         }
     }
 
@@ -223,4 +241,27 @@ public class SnakeModel : MonoBehaviour {
     {
         snakeMovementDirection = newMovementDirection;
     }
+
+    void GenerateNewApple()
+    {
+        Vector2Int newApplePosition;
+        while (true)
+        {
+            newApplePosition = new Vector2Int(Random.Range(0, MapWidth - 1), Random.Range(0, MapHeight - 1));
+            if(Cells[newApplePosition.x * MapHeight + newApplePosition.y].CellLife <= 0)
+            {
+                break;
+            }
+        }
+        Cells[newApplePosition.x * MapHeight + newApplePosition.y].CellType = cellTypes.apple;
+    }
+
+    void EndGame()
+    {
+        foreach (Component view in views)
+        {
+            view.GetComponent<SnakeView>().GameEnds();
+        }
+    }
+
 }

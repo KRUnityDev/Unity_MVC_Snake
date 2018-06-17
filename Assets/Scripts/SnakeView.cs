@@ -4,4 +4,6 @@
     void ChangeModel(SnakeModel model);
     void UpdateView();
     void InitializeView();
+    void GameEnds();
+    void RestartGame();
 }
